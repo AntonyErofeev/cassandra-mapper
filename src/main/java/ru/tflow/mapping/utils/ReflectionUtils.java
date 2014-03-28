@@ -1,10 +1,15 @@
 package ru.tflow.mapping.utils;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import static java.util.stream.Collectors.toList;
@@ -15,6 +20,8 @@ import static java.util.stream.Collectors.toList;
  * Created by erofeev on 12/15/13.
  */
 public class ReflectionUtils {
+
+    protected static Logger log = LoggerFactory.getLogger(ReflectionUtils.class);
 
     public static Object instantiate(Class cls) {
         try {
@@ -51,15 +58,21 @@ public class ReflectionUtils {
         }
     }
 
-    public static Object getFieldValue(Object o, String fieldName) {
-        Method m = findMethod(
-                o.getClass(),
-                "get" + fieldName.replaceFirst(
-                        String.valueOf(fieldName.charAt(0)),
-                        String.valueOf(Character.toLowerCase(fieldName.charAt(0)))),
-                new Class[]{});
+    public static Object readField(Field f, Object o) {
+        try {
+            return FieldUtils.readField(f, o, true);
+        } catch (IllegalAccessException | IllegalArgumentException e) {
+            log.error("=====> Cannot read field {} of object {}. Error is: {}", f.getName(), o, e.getMessage());
+            return null;
+        }
+    }
 
-        return m == null ? null : invoke(m, o);
+    public static void writeField(Field f, Object o, Object value) {
+        try {
+            FieldUtils.writeField(f, o, value, true);
+        } catch (IllegalAccessException | IllegalArgumentException e) {
+            log.error("=====> Cannot write field {} of object {} to value {}. Error is: {}", f.getName(), o, value, e.getMessage());
+        }
     }
 
     public static Object invoke(Method m, Object o, Object... params) {

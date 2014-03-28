@@ -3,6 +3,7 @@ package ru.tflow.mapping;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import ru.tflow.mapping.exceptions.DuplicateKeyException;
 import ru.tflow.mapping.exceptions.KeyNotFoundException;
 import ru.tflow.mapping.utils.MappingUtils;
@@ -136,7 +137,7 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
         Method setValue = findMethod(stm.getClass(), "setValue", int.class, ByteBuffer.class);
         setValue.setAccessible(true);
         configuration().fields(getClass()).map(f -> new Tuple2<>(counting.next(), f)).forEachOrdered(f -> {
-            Object val = getFieldValue(entity, f.getElement2().getField().getName());
+            Object val = readField(f.getElement2().getField(), entity);
             ByteBuffer value = null;
             if (val != null) {
                 value = f.getElement2().getFieldType().serialize(val);
