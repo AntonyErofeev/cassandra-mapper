@@ -1,6 +1,7 @@
 package ru.tflow.mapping;
 
 import com.datastax.driver.core.DataType;
+import org.apache.commons.lang3.ClassUtils;
 import ru.tflow.mapping.exceptions.CorruptedMappingException;
 
 import java.nio.ByteBuffer;
@@ -25,12 +26,16 @@ public class ExtendedDataType {
     public ExtendedDataType(Class type,
                             DataType mappedType) {
 
+        if (type.isPrimitive()) {
+            type = ClassUtils.primitiveToWrapper(type);
+        }
+
         this.originalType = Objects.requireNonNull(type, "Class cannot be null.");
         this.mappedType = Objects.requireNonNull(mappedType, "Mapped type cannot be null");
 
         if (!mappedType.asJavaClass().isAssignableFrom(type)) {
-            throw new CorruptedMappingException("Mapped type is not assignable from field type, and no serialize function given.",
-                    type.getDeclaringClass());
+            throw new CorruptedMappingException("Mapped type: " + mappedType.getName().asJavaClass().getSimpleName() + " is not assignable from field type: " + type.getSimpleName()
+                + ", and no serialize function given.", type.getDeclaringClass());
         }
 
         this.serialize = mappedType::serialize;

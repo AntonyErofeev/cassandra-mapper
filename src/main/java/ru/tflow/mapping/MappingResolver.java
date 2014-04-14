@@ -1,12 +1,14 @@
 package ru.tflow.mapping;
 
 import com.datastax.driver.core.DataType;
+import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import ru.tflow.mapping.utils.Tuple3;
 
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -235,6 +237,11 @@ public interface MappingResolver {
      * @return Optional of resolved type
      */
     default Optional<DataType> resolveBase(Class<?> c) {
+
+        if (c.isPrimitive()) {
+            c = ClassUtils.primitiveToWrapper(c);
+        }
+
         //String
         if (String.class.isAssignableFrom(c)) return Optional.of(DataType.text());
 
@@ -243,11 +250,15 @@ public interface MappingResolver {
 
         //Numbers
         if (BigDecimal.class.isAssignableFrom(c)) return Optional.of(DataType.decimal());
+        if (BigInteger.class.isAssignableFrom(c)) return Optional.of(DataType.bigint());
+        if (Short.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
         if (Integer.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
         if (Long.class.isAssignableFrom(c)) return Optional.of(DataType.bigint());
+        if (Character.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
         if (Float.class.isAssignableFrom(c)) return Optional.of(DataType.cfloat());
         if (Double.class.isAssignableFrom(c)) return Optional.of(DataType.cdouble());
         if (Boolean.class.isAssignableFrom(c)) return Optional.of(DataType.cboolean());
+        if (Byte.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
 
         //Date
         if (Date.class.isAssignableFrom(c)) return Optional.of(DataType.timestamp());

@@ -19,10 +19,10 @@ public class CompoundKeyEntity {
     @Id
     public UUID clusteringId;
 
-    @Composite
+    @Composite(0)
     public ZonedDateTime time;
 
-    @Composite
+    @Composite(1)
     public int partId;
 
     public BigDecimal number;

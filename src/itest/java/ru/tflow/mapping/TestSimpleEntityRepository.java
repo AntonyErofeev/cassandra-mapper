@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -61,9 +62,9 @@ public class TestSimpleEntityRepository {
     }
 
     protected void testRetrieveOne() {
-        AdvancedSimpleEntity _entity = repository.get(entity.getKey());
-        _entity.setDt(_entity.getDt().withZoneSameInstant(ZoneId.systemDefault()));
-        assertTrue(entity.equals(_entity));
+        Optional<AdvancedSimpleEntity> _entity = repository.findOne(entity.getKey());
+        _entity.get().setDt(_entity.get().getDt().withZoneSameInstant(ZoneId.systemDefault()));
+        assertTrue(entity.equals(_entity.get()));
     }
 
     protected void testRetrieveAll() {

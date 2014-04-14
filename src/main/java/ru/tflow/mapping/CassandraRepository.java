@@ -35,29 +35,29 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
     }
 
     /**
-     * Get entity by it's primary key.
+     * Find entity by it's keys
      *
      * @param key Key
+     * @param compound Entity compound keys values. Must be in order of sorted ascending composite keys
      * @return Entity
-     * @throws KeyNotFoundException  - if there is no such key in database
-     * @throws DuplicateKeyException - if entity has a compound primary key
+     * @throws DuplicateKeyException - if there is more than one entity with keys supplied
      */
-    public default E get(K key) throws KeyNotFoundException, DuplicateKeyException {
-        List<E> resut = find(key);
-        if (resut.isEmpty()) {
-            throw new KeyNotFoundException("Key not found", key, configuration().metadata(getClass()).getEntityClass());
+    public default Optional<E> findOne(K key, Object... compound) throws DuplicateKeyException {
+        List<E> result = find(key, compound);
+        if (result.isEmpty()) {
+            return Optional.empty();
         }
-        if (resut.size() > 1) {
+        if (result.size() > 1) {
             throw new DuplicateKeyException("More than one record found", key, configuration().metadata(getClass()).getEntityClass());
         }
-        return resut.get(0);
+        return Optional.of(result.get(0));
     }
 
     /**
-     * Find entity by it's primary key
+     * Find entity by it's keys
      *
      * @param key      Entity key
-     * @param compound Entity compound keys values
+     * @param compound Entity compound keys values. Must be in order of sorted ascending composite keys
      * @return List of entity objects or empty list if none found
      */
     @SuppressWarnings("unchecked")
