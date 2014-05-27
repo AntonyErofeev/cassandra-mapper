@@ -1,6 +1,6 @@
 package ru.tflow.mapping;
 
-import ru.tflow.mapping.annotations.Composite;
+import ru.tflow.mapping.annotations.Compound;
 import ru.tflow.mapping.annotations.Id;
 import ru.tflow.mapping.exceptions.CorruptedMappingException;
 import ru.tflow.mapping.resolvers.MappingResolver;
@@ -22,21 +22,21 @@ public class FieldMetadata {
     private Field field;
 
     /**
-     *
+     * Name of corresponding table column
      */
-    private Class<?> fClass;
-
     private String name;
 
+    /**
+     * Extended field metadata
+     */
     private ExtendedDataType fieldType;
 
     public FieldMetadata(Field field, MappingResolver resolver) {
         this.field = field;
         this.field.setAccessible(true);
-        this.fClass = field.getType();
         ru.tflow.mapping.annotations.Field f = field.getAnnotation(ru.tflow.mapping.annotations.Field.class);
         name = f != null ? f.value() : field.getName().toLowerCase();
-        fieldType = resolver.resolve(field).orElseThrow(() -> new CorruptedMappingException("Cannot resolve field type.", fClass));
+        fieldType = resolver.resolve(field).orElseThrow(() -> new CorruptedMappingException("Cannot resolve field type.", field.getType()));
     }
 
     public Field getField() {
@@ -44,7 +44,7 @@ public class FieldMetadata {
     }
 
     public Class<?> getFClass() {
-        return fClass;
+        return field.getType();
     }
 
     public String getName() {
@@ -60,11 +60,11 @@ public class FieldMetadata {
     }
 
     public boolean isInComposite() {
-        return field.getAnnotation(Composite.class) != null;
+        return field.getAnnotation(Compound.class) != null;
     }
 
     public int compositeOrder() {
-        return !isInComposite() ? -1 : field.getAnnotation(Composite.class).value();
+        return !isInComposite() ? -1 : field.getAnnotation(Compound.class).value();
     }
 
 }

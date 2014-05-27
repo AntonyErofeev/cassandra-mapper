@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Composite {
+public @interface Compound {
 
     /**
      * Order in which field appear in composite key

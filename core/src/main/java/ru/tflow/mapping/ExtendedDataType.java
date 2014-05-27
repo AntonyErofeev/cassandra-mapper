@@ -3,14 +3,15 @@ package ru.tflow.mapping;
 import com.datastax.driver.core.DataType;
 import org.apache.commons.lang3.ClassUtils;
 import ru.tflow.mapping.exceptions.CorruptedMappingException;
+import ru.tflow.mapping.utils.ReflectionUtils;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Class holding extended data about type of mapped field
- * <p/>
+ * Class holding extended data about type of mapped field.
+ *
  * User: erofeev
  * Date: 12/3/13
  * Time: 10:20 PM
@@ -48,10 +49,6 @@ public class ExtendedDataType {
      */
     public ExtendedDataType(Class originalType,
                             DataType mappedType) {
-
-        if (originalType.isPrimitive()) {
-            originalType = ClassUtils.primitiveToWrapper(originalType);
-        }
 
         this.originalType = Objects.requireNonNull(originalType, "Class cannot be null.");
         this.mappedType = Objects.requireNonNull(mappedType, "Mapped type cannot be null");

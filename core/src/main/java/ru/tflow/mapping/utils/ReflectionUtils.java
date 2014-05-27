@@ -63,20 +63,20 @@ public class ReflectionUtils {
             .findFirst();
     }
 
+    public static boolean isGenericType(Class<?> cls) {
+        if (cls.isAssignableFrom(Object.class)) {
+            return false;
+        } else {
+            return cls.getTypeParameters().length != 0 || isGenericType(cls.getSuperclass());
+        }
+    }
+
     public static Object readField(Field f, Object o) {
         try {
             return FieldUtils.readField(f, o, true);
         } catch (IllegalAccessException | IllegalArgumentException e) {
             log.error("=====> Cannot read field {} of object {}. Error is: {}", f.getName(), o, e.getMessage());
             return null;
-        }
-    }
-
-    public static void writeField(Field f, Object o, Object value) {
-        try {
-            FieldUtils.writeField(f, o, value, true);
-        } catch (IllegalAccessException | IllegalArgumentException e) {
-            log.error("=====> Cannot write field {} of object {} to value {}. Error is: {}", f.getName(), o, value, e.getMessage());
         }
     }
 

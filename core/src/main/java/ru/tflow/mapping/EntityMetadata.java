@@ -26,7 +26,7 @@ public class EntityMetadata {
     private Class<?> eClass;
 
     /**
-     * Field metadata for primery key
+     * Field metadata for primary key
      */
     private FieldMetadata primaryKey = null;
 

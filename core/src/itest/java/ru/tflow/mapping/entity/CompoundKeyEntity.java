@@ -1,6 +1,6 @@
 package ru.tflow.mapping.entity;
 
-import ru.tflow.mapping.annotations.Composite;
+import ru.tflow.mapping.annotations.Compound;
 import ru.tflow.mapping.annotations.Id;
 import ru.tflow.mapping.annotations.Table;
 
@@ -18,10 +18,10 @@ public class CompoundKeyEntity {
     @Id
     public UUID clusteringId;
 
-    @Composite(0)
+    @Compound(0)
     public ZonedDateTime time;
 
-    @Composite(1)
+    @Compound(1)
     public int partId;
 
     public BigDecimal number;

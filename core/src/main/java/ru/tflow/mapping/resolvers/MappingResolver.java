@@ -178,56 +178,56 @@ public interface MappingResolver {
      * @return Optional of resolved field or empty if not found
      */
     @SuppressWarnings("unchecked")
-    default Optional<ExtendedDataType> resolveWithExtended(Class<?> c) {
-        Optional<DataType> base = resolveBase(c);
-        if (base.isPresent()) return Optional.of(new ExtendedDataType(c, base.get()));
-
-        if (URL.class.isAssignableFrom(c)) {
-            return Optional.of(new ExtendedDataType(c, DataType.text(),
-                (o) -> DataType.text().serialize(o.toString()),
-                (b) -> {
-                    try {
-                        return new URL(DataType.text().deserialize(b).toString());
-                    } catch (MalformedURLException e) {
-                        e.printStackTrace();
-                        return null;
-                    }
-                }
-            ));
-        }
-
-        if (Enum.class.isAssignableFrom(c)) {
-            return Optional.of(new ExtendedDataType(c, DataType.text(),
-                (o) -> DataType.text().serialize(((Enum) o).name()),
-                (b) -> Enum.valueOf((Class<Enum>) c, DataType.text().deserialize(b).toString())));
-        }
-
-        if (Instant.class.isAssignableFrom(c)) {
-            return Optional.of(new ExtendedDataType(c, DataType.timestamp(),
-                (o) -> DataType.timestamp().serialize(new Date(((Instant) o).toEpochMilli())),
-                (b) -> Instant.ofEpochMilli(((Date) DataType.timestamp().deserialize(b)).getTime())));
-        }
-
-        if (LocalDateTime.class.isAssignableFrom(c)) {
-            return Optional.of(new ExtendedDataType(c, DataType.timestamp(),
-                (o) -> DataType.timestamp().serialize(new Date(((LocalDateTime) o).toInstant(ZoneOffset.UTC).toEpochMilli())),
-                (b) -> LocalDateTime.ofInstant(Instant.ofEpochMilli(((Date) DataType.timestamp().deserialize(b)).getTime()), ZoneId.of("UTC"))));
-        }
-
-        if (ZonedDateTime.class.isAssignableFrom(c)) {
-            return Optional.of(new ExtendedDataType(c, DataType.timestamp(),
-                (o) -> DataType.timestamp().serialize(new Date(((ZonedDateTime) o).toInstant().toEpochMilli())),
-                (b) -> ZonedDateTime.ofInstant(Instant.ofEpochMilli(((Date) DataType.timestamp().deserialize(b)).getTime()), ZoneId.of("UTC"))));
-        }
-
-        //Check if we have user defined serializer for this type
-        if (extendedSerializers().containsKey(c)) {
-            Tuple3<DataType, Function<Object, ByteBuffer>, Function<ByteBuffer, Object>> t = extendedSerializers().get(c);
-            return Optional.of(new ExtendedDataType(c, t.getElement1(), t.getElement2(), t.getElement3()));
-        }
-
-        return Optional.empty();
-    }
+//    default Optional<ExtendedDataType> resolveWithExtended(Class<?> c) {
+//        Optional<DataType> base = resolveBase(c);
+//        if (base.isPresent()) return Optional.of(new ExtendedDataType(c, base.get()));
+//
+//        if (URL.class.isAssignableFrom(c)) {
+//            return Optional.of(new ExtendedDataType(c, DataType.text(),
+//                (o) -> DataType.text().serialize(o.toString()),
+//                (b) -> {
+//                    try {
+//                        return new URL(DataType.text().deserialize(b).toString());
+//                    } catch (MalformedURLException e) {
+//                        e.printStackTrace();
+//                        return null;
+//                    }
+//                }
+//            ));
+//        }
+//
+//        if (Enum.class.isAssignableFrom(c)) {
+//            return Optional.of(new ExtendedDataType(c, DataType.text(),
+//                (o) -> DataType.text().serialize(((Enum) o).name()),
+//                (b) -> Enum.valueOf((Class<Enum>) c, DataType.text().deserialize(b).toString())));
+//        }
+//
+//        if (Instant.class.isAssignableFrom(c)) {
+//            return Optional.of(new ExtendedDataType(c, DataType.timestamp(),
+//                (o) -> DataType.timestamp().serialize(new Date(((Instant) o).toEpochMilli())),
+//                (b) -> Instant.ofEpochMilli(((Date) DataType.timestamp().deserialize(b)).getTime())));
+//        }
+//
+//        if (LocalDateTime.class.isAssignableFrom(c)) {
+//            return Optional.of(new ExtendedDataType(c, DataType.timestamp(),
+//                (o) -> DataType.timestamp().serialize(new Date(((LocalDateTime) o).toInstant(ZoneOffset.UTC).toEpochMilli())),
+//                (b) -> LocalDateTime.ofInstant(Instant.ofEpochMilli(((Date) DataType.timestamp().deserialize(b)).getTime()), ZoneId.of("UTC"))));
+//        }
+//
+//        if (ZonedDateTime.class.isAssignableFrom(c)) {
+//            return Optional.of(new ExtendedDataType(c, DataType.timestamp(),
+//                (o) -> DataType.timestamp().serialize(new Date(((ZonedDateTime) o).toInstant().toEpochMilli())),
+//                (b) -> ZonedDateTime.ofInstant(Instant.ofEpochMilli(((Date) DataType.timestamp().deserialize(b)).getTime()), ZoneId.of("UTC"))));
+//        }
+//
+//        //Check if we have user defined serializer for this type
+//        if (extendedSerializers().containsKey(c)) {
+//            Tuple3<DataType, Function<Object, ByteBuffer>, Function<ByteBuffer, Object>> t = extendedSerializers().get(c);
+//            return Optional.of(new ExtendedDataType(c, t.getElement1(), t.getElement2(), t.getElement3()));
+//        }
+//
+//        return Optional.empty();
+//    }
 
     /**
      * Resolve elementary type to one of cassandra types
@@ -235,40 +235,40 @@ public interface MappingResolver {
      * @param c Class to resolve
      * @return Optional of resolved type
      */
-    default Optional<DataType> resolveBase(Class<?> c) {
-
-        if (c.isPrimitive()) {
-            c = ClassUtils.primitiveToWrapper(c);
-        }
-
-        //String
-        if (String.class.isAssignableFrom(c)) return Optional.of(DataType.text());
-
-        //Net addresses
-        if (InetAddress.class.isAssignableFrom(c)) return Optional.of(DataType.inet());
-
-        //Numbers
-        if (BigDecimal.class.isAssignableFrom(c)) return Optional.of(DataType.decimal());
-        if (BigInteger.class.isAssignableFrom(c)) return Optional.of(DataType.bigint());
-        if (Short.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
-        if (Integer.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
-        if (Long.class.isAssignableFrom(c)) return Optional.of(DataType.bigint());
-        if (Character.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
-        if (Float.class.isAssignableFrom(c)) return Optional.of(DataType.cfloat());
-        if (Double.class.isAssignableFrom(c)) return Optional.of(DataType.cdouble());
-        if (Boolean.class.isAssignableFrom(c)) return Optional.of(DataType.cboolean());
-        if (Byte.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
-
-        //Date
-        if (Date.class.isAssignableFrom(c)) return Optional.of(DataType.timestamp());
-
-        //UUID
-        if (UUID.class.isAssignableFrom(c)) return Optional.of(DataType.uuid());
-
-        //Binary
-        if (ByteBuffer.class.isAssignableFrom(c)) return Optional.of(DataType.blob());
-
-        return Optional.empty();
-    }
+//    default Optional<DataType> resolveBase(Class<?> c) {
+//
+//        if (c.isPrimitive()) {
+//            c = ClassUtils.primitiveToWrapper(c);
+//        }
+//
+//        //String
+//        if (String.class.isAssignableFrom(c)) return Optional.of(DataType.text());
+//
+//        //Net addresses
+//        if (InetAddress.class.isAssignableFrom(c)) return Optional.of(DataType.inet());
+//
+//        //Numbers
+//        if (BigDecimal.class.isAssignableFrom(c)) return Optional.of(DataType.decimal());
+//        if (BigInteger.class.isAssignableFrom(c)) return Optional.of(DataType.bigint());
+//        if (Short.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
+//        if (Integer.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
+//        if (Long.class.isAssignableFrom(c)) return Optional.of(DataType.bigint());
+//        if (Character.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
+//        if (Float.class.isAssignableFrom(c)) return Optional.of(DataType.cfloat());
+//        if (Double.class.isAssignableFrom(c)) return Optional.of(DataType.cdouble());
+//        if (Boolean.class.isAssignableFrom(c)) return Optional.of(DataType.cboolean());
+//        if (Byte.class.isAssignableFrom(c)) return Optional.of(DataType.cint());
+//
+//        //Date
+//        if (Date.class.isAssignableFrom(c)) return Optional.of(DataType.timestamp());
+//
+//        //UUID
+//        if (UUID.class.isAssignableFrom(c)) return Optional.of(DataType.uuid());
+//
+//        //Binary
+//        if (ByteBuffer.class.isAssignableFrom(c)) return Optional.of(DataType.blob());
+//
+//        return Optional.empty();
+//    }
 
 }

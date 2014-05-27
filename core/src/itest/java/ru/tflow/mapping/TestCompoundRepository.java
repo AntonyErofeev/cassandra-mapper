@@ -18,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
+ *
  * Created by nagakhl on 3/28/2014.
  */
 public class TestCompoundRepository {
