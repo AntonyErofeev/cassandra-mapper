@@ -21,22 +21,22 @@ public class ExtendedDataType {
     /**
      * Type of field in cassandra database
      */
-    private DataType mappedType;
+    private final DataType mappedType;
 
     /**
      * Original type of field in mapped class
      */
-    private Class<?> originalType;
+    private final Class<?> originalType;
 
     /**
      * Function that serializes original type to ByteBuffer
      */
-    private Function<Object, ByteBuffer> serialize;
+    private final Function<Object, ByteBuffer> serialize;
 
     /**
      * Function that deserializes from ByteBuffer to original type
      */
-    private Function<ByteBuffer, Object> deserialize;
+    private final Function<ByteBuffer, Object> deserialize;
 
     /**
      * Creates ExtendedDataType instance with default serialize/deserialize functions provided by cassandra driver.
