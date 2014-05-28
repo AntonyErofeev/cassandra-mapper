@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  *
  * Created by nagakhl on 5/27/2014.
  */
-public class CollectionResolver implements ChainNode {
+public class CollectionResolverNode extends GenericResolver implements ChainNode {
 
     @Override
     public Optional<ExtendedDataType> resolve(Field f) {
