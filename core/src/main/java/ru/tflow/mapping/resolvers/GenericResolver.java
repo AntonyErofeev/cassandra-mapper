@@ -4,11 +4,13 @@ import org.apache.commons.lang3.reflect.TypeUtils;
 import ru.tflow.mapping.ExtendedDataType;
 import ru.tflow.mapping.exceptions.CorruptedMappingException;
 import ru.tflow.mapping.utils.ReflectionUtils;
+import ru.tflow.mapping.utils.Tuple2;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Base class for resolvers that need not only resolve type but also it's type arguments.
@@ -41,15 +43,10 @@ public abstract  class GenericResolver {
         if (!genericClass.isAssignableFrom(field.getType()))
             throw new CorruptedMappingException("Field: " + field.getName() + " cannot be cast to: " + genericClass.getName(), field.getDeclaringClass());
 
-        TypeUtils.getTypeArguments(field.getType(), genericClass).entrySet().stream()
-            .filter(e -> e.getKey().getGenericDeclaration().equals(genericClass))
-            .map(e -> )
+        Map<String, Type> types = TypeUtils.getTypeArguments(field.getType(), genericClass).entrySet().stream()
+                .filter(e -> e.getKey().getGenericDeclaration().equals(genericClass))
+                .collect(Collectors.toMap(e -> e.getKey().getName(), Map.Entry::getValue));
 
-        Map.Entry<TypeVariable<?>, Type> typeEntry =
-                type.orElseThrow(() -> new CorruptedMappingException("Cannot resolve type arguments for field: " + field.getName(), field.getDeclaringClass()));
-
-        Map<String, ExtendedDataType> result = new HashMap<>();
-        for ()
 
 
     }

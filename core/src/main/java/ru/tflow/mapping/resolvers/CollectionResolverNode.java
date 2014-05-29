@@ -39,6 +39,7 @@ public class CollectionResolverNode extends GenericResolver implements ChainNode
         return Optional.empty();
     }
 
+    @SuppressWarnings("unchecked")
     protected ExtendedDataType introspectList(Field f) throws CorruptedMappingException {
         Class<?> cls = f.getType();
         Optional<Map.Entry<TypeVariable<?>, Type>> o = ReflectionUtils.findType(f, List.class);
@@ -70,6 +71,7 @@ public class CollectionResolverNode extends GenericResolver implements ChainNode
         }
     }
 
+    @SuppressWarnings("unchecked")
     protected ExtendedDataType introspectSet(Field f) throws CorruptedMappingException {
         Class<?> cls = f.getType();
         Optional<Map.Entry<TypeVariable<?>, Type>> o = ReflectionUtils.findType(f, Set.class);
@@ -100,6 +102,7 @@ public class CollectionResolverNode extends GenericResolver implements ChainNode
         }
     }
 
+    @SuppressWarnings("unchecked")
     protected ExtendedDataType introspectMap(Field f) throws CorruptedMappingException {
         Class<?> cls = f.getType();
         //Get all type variables
