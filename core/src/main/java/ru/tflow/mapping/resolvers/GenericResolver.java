@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  */
 public abstract  class GenericResolver {
 
-    protected final List<ChainNode> genericsResolveChain = new ArrayList<>();
+    protected final List<ClassResolver> genericsResolveChain = new ArrayList<>();
 
     protected GenericResolver() {
         genericsResolveChain.add(new DirectResolverNode());
@@ -43,11 +43,24 @@ public abstract  class GenericResolver {
         if (!genericClass.isAssignableFrom(field.getType()))
             throw new CorruptedMappingException("Field: " + field.getName() + " cannot be cast to: " + genericClass.getName(), field.getDeclaringClass());
 
-        Map<String, Type> types = TypeUtils.getTypeArguments(field.getType(), genericClass).entrySet().stream()
+        return TypeUtils.getTypeArguments(field.getType(), genericClass).entrySet().stream()
                 .filter(e -> e.getKey().getGenericDeclaration().equals(genericClass))
-                .collect(Collectors.toMap(e -> e.getKey().getName(), Map.Entry::getValue));
+                .map(e -> {
+                    Optional<ExtendedDataType> type = resolveGenericParam((Class<?>) e.getValue());
+                    if (!type.isPresent()) {
+                        throw new CorruptedMappingException("Generic type cannot be resolved for field: " + field.getName(), field.getDeclaringClass());
+                    }
+                    return new Tuple2<>(e.getKey().getName(), type.get());
+                }).collect(Collectors.toMap(Tuple2::getElement1, Tuple2::getElement2));
+    }
 
-
-
+    protected Optional<ExtendedDataType> resolveGenericParam(Class<?> param) {
+        for (ClassResolver resolver : genericsResolveChain) {
+            Optional<ExtendedDataType> result = resolver.resolve(param);
+            if (result.isPresent()) {
+                return result;
+            }
+        }
+        return Optional.empty();
     }
 }

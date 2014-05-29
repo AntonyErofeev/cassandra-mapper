@@ -17,11 +17,15 @@ import java.util.UUID;
  *
  * Created by nagakhl on 5/27/2014.
  */
-public class DirectResolverNode implements ChainNode {
+public class DirectResolverNode implements ChainNode, ClassResolver {
+
     @Override
     public Optional<ExtendedDataType> resolve(Field f) {
-        Class<?> c = f.getType();
+        return resolve(f.getType());
+    }
 
+    @Override
+    public Optional<ExtendedDataType> resolve(Class<?> c) {
         //String
         if (String.class.isAssignableFrom(c)) return Optional.of(new ExtendedDataType(c, DataType.text()));
 

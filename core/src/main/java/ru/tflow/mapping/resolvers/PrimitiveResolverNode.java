@@ -13,7 +13,7 @@ import java.util.Optional;
  *
  * Created by nagakhl on 5/26/2014.
  */
-public class PrimitiveResolverNode implements ChainNode {
+public class PrimitiveResolverNode implements ChainNode, ClassResolver {
 
     private static final Map<Class<?>, DataType> primitivesMap = new HashMap<>();
     
@@ -30,10 +30,14 @@ public class PrimitiveResolverNode implements ChainNode {
     
     @Override
     public Optional<ExtendedDataType> resolve(Field f) {
-        //If field is not primitive just return
-        if (!f.getType().isPrimitive()) return Optional.empty();
-        
-        return Optional.of(new ExtendedDataType(f.getType(), primitivesMap.get(f.getType())));
+        return resolve(f.getType());
+    }
 
+    @Override
+    public Optional<ExtendedDataType> resolve(Class<?> cls) {
+        //If field is not primitive just return
+        if (!cls.isPrimitive()) return Optional.empty();
+
+        return Optional.of(new ExtendedDataType(cls, primitivesMap.get(cls)));
     }
 }

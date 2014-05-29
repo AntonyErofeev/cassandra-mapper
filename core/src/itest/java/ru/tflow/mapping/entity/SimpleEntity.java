@@ -12,6 +12,7 @@ import java.time.ZonedDateTime;
 import java.util.UUID;
 
 /**
+ *
  * Created by nagakhl on 3/25/2014.
  */
 @Table("simple")

@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import static ru.tflow.mapping.entity.SimpleEntity.AdvancedSimpleEntity;
 
 /**
+ *
  * Created by nagakhl on 3/25/2014.
  */
 public class TestSimpleEntityRepository {

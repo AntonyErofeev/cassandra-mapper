@@ -1,6 +1,6 @@
 package ru.tflow.mapping;
 
-import ru.tflow.mapping.resolvers.DefaultMappingResolver;
+import ru.tflow.mapping.resolvers.ChainedResolver;
 import ru.tflow.mapping.resolvers.MappingResolver;
 import ru.tflow.mapping.utils.MappingUtils;
 
@@ -24,7 +24,7 @@ public abstract class AbstractMapperConfiguration implements MapperConfiguration
 
     @Override
     public MappingResolver mappingResolver() {
-        return new DefaultMappingResolver();
+        return new ChainedResolver();
     }
 
     public void addMetadata(CassandraRepository<?, ?> repository) {

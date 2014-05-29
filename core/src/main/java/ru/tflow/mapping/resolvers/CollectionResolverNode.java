@@ -41,113 +41,94 @@ public class CollectionResolverNode extends GenericResolver implements ChainNode
 
     @SuppressWarnings("unchecked")
     protected ExtendedDataType introspectList(Field f) throws CorruptedMappingException {
-        Class<?> cls = f.getType();
-        Optional<Map.Entry<TypeVariable<?>, Type>> o = ReflectionUtils.findType(f, List.class);
-        if (o.isPresent()) {
-            Optional<ExtendedDataType> optType = resolveWithExtended((Class<?>) o.get().getValue());
-            if (optType.isPresent()) {
-                DataType dataType = optType.get().getMappedType();
-                return new ExtendedDataType(cls, DataType.list(dataType),
-                        lst -> {
-                            if (optType.get().isExtended()) {
-                                List baseList = new ArrayList(((List) lst).size());
-                                ((List) lst).stream().forEach(obj -> baseList.add(optType.get().toMapped(obj)));
-                                return DataType.list(dataType).serialize(baseList);
-                            }
-                            return DataType.list(dataType).serialize(lst);
-                        },
-                        bb -> {
-                            List baseList = (List) DataType.list(dataType).deserialize(bb);
-                            if (optType.get().isExtended()) {
-                                List extended = new ArrayList(baseList.size());
-                                baseList.stream().forEach(el -> extended.add(optType.get().toOriginal(el)));
-                                return extended;
-                            }
-                            return baseList;
 
-                        }
-                );
-            }
-        }
+        ExtendedDataType genericType = argumentType(f, List.class).get("E");
+        if (genericType == null)
+            throw new CorruptedMappingException("Cannot find mapping for List type argument. Field: " + f.getName(), f.getDeclaringClass());
+
+        return new ExtendedDataType(f.getType(), DataType.list(genericType.getMappedType()),
+                lst -> {
+                    if (genericType.isExtended()) {
+                        List baseList = new ArrayList(((List) lst).size());
+                        ((List) lst).stream().forEach(obj -> baseList.add(genericType.toMapped(obj)));
+                        return DataType.list(genericType.getMappedType()).serialize(baseList);
+                    }
+                    return DataType.list(genericType.getMappedType()).serialize(lst);
+                },
+                bb -> {
+                    List baseList = (List) DataType.list(genericType.getMappedType()).deserialize(bb);
+                    if (genericType.isExtended()) {
+                        List extended = new ArrayList(baseList.size());
+                        baseList.stream().forEach(el -> extended.add(genericType.toOriginal(el)));
+                        return extended;
+                    }
+                    return baseList;
+
+                }
+        );
     }
 
     @SuppressWarnings("unchecked")
     protected ExtendedDataType introspectSet(Field f) throws CorruptedMappingException {
-        Class<?> cls = f.getType();
-        Optional<Map.Entry<TypeVariable<?>, Type>> o = ReflectionUtils.findType(f, Set.class);
-        if (o.isPresent()) {
-            Optional<ExtendedDataType> optType = resolveWithExtended((Class<?>) o.get().getValue());
-            if (optType.isPresent()) {
-                DataType dt = optType.get().getMappedType();
-                return new ExtendedDataType(cls, DataType.set(dt),
-                        set -> {
-                            if (optType.get().isExtended()) {
-                                Set baseSet = new HashSet();
-                                ((Set) set).stream().forEach(obj -> baseSet.add(optType.get().toMapped(obj)));
-                                return DataType.set(dt).serialize(baseSet);
-                            }
-                            return DataType.set(dt).serialize(set);
-                        },
-                        buf -> {
-                            Set baseSet = (Set) DataType.set(dt).deserialize(buf);
-                            if (optType.get().isExtended()) {
-                                Set extended = new HashSet();
-                                baseSet.stream().forEach(el -> extended.add(optType.get().toOriginal(el)));
-                                return extended;
-                            }
-                            return baseSet;
-                        }
-                );
-            }
-        }
+
+        ExtendedDataType genericType = argumentType(f, Set.class).get("E");
+        if (genericType == null)
+            throw new CorruptedMappingException("Cannot find mapping for Set type argument. Field: " + f.getName(), f.getDeclaringClass());
+
+        return new ExtendedDataType(f.getType(), DataType.set(genericType.getMappedType()),
+                set -> {
+                    if (genericType.isExtended()) {
+                        Set baseSet = new HashSet();
+                        ((Set) set).stream().forEach(obj -> baseSet.add(genericType.toMapped(obj)));
+                        return DataType.set(genericType.getMappedType()).serialize(baseSet);
+                    }
+                    return DataType.set(genericType.getMappedType()).serialize(set);
+                },
+                buf -> {
+                    Set baseSet = (Set) DataType.set(genericType.getMappedType()).deserialize(buf);
+                    if (genericType.isExtended()) {
+                        Set extended = new HashSet();
+                        baseSet.stream().forEach(el -> extended.add(genericType.toOriginal(el)));
+                        return extended;
+                    }
+                    return baseSet;
+                }
+        );
+
     }
 
     @SuppressWarnings("unchecked")
     protected ExtendedDataType introspectMap(Field f) throws CorruptedMappingException {
         Class<?> cls = f.getType();
-        //Get all type variables
-        Map<TypeVariable<?>, Type> args = TypeUtils.getTypeArguments(f.getGenericType(), Map.class);
 
-        //Filter not related to map interface
-        Set<HashMap.Entry<TypeVariable<?>, Type>> entries = args.entrySet().stream()
-                .filter(v -> v.getKey().getGenericDeclaration().equals(Map.class)).collect(Collectors.toSet());
+        Map<String, ExtendedDataType> argumentTypes = argumentType(f, Map.class);
 
-        Optional<ExtendedDataType> key = Optional.empty();
-        Optional<ExtendedDataType> val = Optional.empty();
+        final ExtendedDataType fKey = argumentTypes.get("K");
+        final ExtendedDataType fVal = argumentTypes.get("V");
 
-        for (HashMap.Entry<TypeVariable<?>, Type> e : entries) {
-            if (e.getKey().getName().equals("K")) key = resolveWithExtended((Class) e.getValue());
-            if (e.getKey().getName().equals("V")) val = resolveWithExtended((Class) e.getValue());
-        }
-
-        final Optional<ExtendedDataType> fKey = key;
-        final Optional<ExtendedDataType> fVal = val;
-
-        if (key.isPresent() && val.isPresent()) {
-            DataType mappedType = DataType.map(key.get().getMappedType(), val.get().getMappedType());
-            return new ExtendedDataType(cls, mappedType,
-                    map -> {
-                        Map baseMap;
-                        if (fKey.get().isExtended() || fVal.get().isExtended()) {
-                            baseMap = new HashMap();
-                            ((Map<Object, Object>) map).entrySet().stream().forEach(el
-                                    -> baseMap.put(fKey.get().toMapped(el.getKey()), fVal.get().toMapped(el.getValue())));
-                        } else {
-                            baseMap = (Map) map;
-                        }
-                        return mappedType.serialize(baseMap);
-                    },
-                    bb -> {
-                        Map<Object, Object> baseMap = (Map) DataType.map(mappedType.getTypeArguments().get(0), mappedType.getTypeArguments().get(1)).deserialize(bb);
-                        if (fKey.get().isExtended() || fVal.get().isExtended()) {
-                            Map extendedMap = new HashMap();
-                            baseMap.entrySet().stream().forEach(el
-                                    -> extendedMap.put(fKey.get().toOriginal(el.getKey()), fVal.get().toOriginal(el.getValue())));
-                            return extendedMap;
-                        }
-                        return baseMap;
+        DataType mappedType = DataType.map(fKey.getMappedType(), fVal.getMappedType());
+        return new ExtendedDataType(cls, mappedType,
+                map -> {
+                    Map baseMap;
+                    if (fKey.isExtended() || fVal.isExtended()) {
+                        baseMap = new HashMap();
+                        ((Map<Object, Object>) map).entrySet().stream().forEach(el
+                                -> baseMap.put(fKey.toMapped(el.getKey()), fVal.toMapped(el.getValue())));
+                    } else {
+                        baseMap = (Map) map;
                     }
-            );
-        }
+                    return mappedType.serialize(baseMap);
+                },
+                bb -> {
+                    Map<Object, Object> baseMap = (Map) DataType.map(mappedType.getTypeArguments().get(0), mappedType.getTypeArguments().get(1)).deserialize(bb);
+                    if (fKey.isExtended() || fVal.isExtended()) {
+                        Map extendedMap = new HashMap();
+                        baseMap.entrySet().stream().forEach(el
+                                -> extendedMap.put(fKey.toOriginal(el.getKey()), fVal.toOriginal(el.getValue())));
+                        return extendedMap;
+                    }
+                    return baseMap;
+                }
+        );
     }
 }
