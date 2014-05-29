@@ -3,9 +3,7 @@ package ru.tflow.mapping;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
-import org.apache.commons.lang3.reflect.FieldUtils;
 import ru.tflow.mapping.exceptions.DuplicateKeyException;
-import ru.tflow.mapping.exceptions.KeyNotFoundException;
 import ru.tflow.mapping.utils.MappingUtils;
 import ru.tflow.mapping.utils.Tuple2;
 
@@ -13,7 +11,6 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
 import static ru.tflow.mapping.utils.ReflectionUtils.*;
@@ -81,7 +78,7 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
         List result = new ArrayList<>();
         for (Row row : rs.all()) {
             final Object instance = instantiate(configuration().metadata(getClass()).getEntityClass());
-            configuration().fields(getClass()).forEachOrdered(f -> {
+            configuration().fields(getClass()).stream().forEachOrdered(f -> {
                 ByteBuffer value = row.getBytesUnsafe(f.getName());
                 if (value != null) {
                     setField(f.getField(), instance, f.getFieldType().deserialize(value));
@@ -108,7 +105,7 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
         List result = new ArrayList<>();
         for (Row row : set.all()) {
             final Object instance = instantiate(configuration().metadata(getClass()).getEntityClass());
-            configuration().fields(getClass()).forEachOrdered(f -> {
+            configuration().fields(getClass()).stream().forEachOrdered(f -> {
                 ByteBuffer value = row.getBytesUnsafe(f.getName());
                 if (value != null) {
                     setField(f.getField(), instance, f.getFieldType().deserialize(value));
@@ -128,10 +125,10 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
     public default void save(E entity) throws DuplicateKeyException {
         String insertTemplate = "insert into %s.%s (%s) values (%s)";
 
-        Stream<FieldMetadata> fm = configuration().fields(getClass());
+        List<FieldMetadata> fm = configuration().fields(getClass());
 
-        String fields = fm.map(FieldMetadata::getName).collect(joining(", "));
-        String values = fm.map(f -> "?").collect(joining(", "));
+        String fields = fm.stream().map(FieldMetadata::getName).collect(joining(", "));
+        String values = fm.stream().map(f -> "?").collect(joining(", "));
         String str = String.format(insertTemplate, configuration().keyspace(), configuration().metadata(getClass()).getTable(), fields, values);
 
         log.debug("====> Inserting entity with query: {}", str);
@@ -142,7 +139,7 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
         Method setValue = findMethod(stm.getClass(), "setValue", int.class, ByteBuffer.class);
         setValue.setAccessible(true);
 
-        fm.map(f -> new Tuple2<>(counting.next(), f)).forEachOrdered(f -> {
+        fm.stream().map(f -> new Tuple2<>(counting.next(), f)).forEachOrdered(f -> {
             Object val = readField(f.getElement2().getField(), entity);
             ByteBuffer value = null;
             if (val != null) {

@@ -54,7 +54,7 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
     public default String createTableCommand() {
         String template = "create table %s.%s (%s, primary key(%s))";
 
-        String fieldsString = configuration().fields(getClass())
+        String fieldsString = configuration().fields(getClass()).stream()
             .map(md -> md.getName() + " " + MappingUtils.formatFieldType(md))
             .collect(joining(", "));
 

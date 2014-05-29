@@ -3,7 +3,7 @@ package ru.tflow.mapping;
 import com.datastax.driver.core.Session;
 import ru.tflow.mapping.resolvers.MappingResolver;
 
-import java.util.stream.Stream;
+import java.util.List;
 
 /**
  * Interface defining all configuration needed for mapper to operate
@@ -48,12 +48,12 @@ public interface MapperConfiguration {
     public EntityMetadata metadata(Class<?> repository);
 
     /**
-     * Get metadata fields as stream
+     * Get metadata fields
      *
-     * @return Stream
+     * @return List of FieldMetadata
      */
-    default Stream<FieldMetadata> fields(Class<?> repository) {
-        return metadata(repository).getFields().stream();
+    default List<FieldMetadata> fields(Class<?> repository) {
+        return metadata(repository).getFields();
     }
 
 }
