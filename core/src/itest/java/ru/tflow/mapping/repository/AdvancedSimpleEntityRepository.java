@@ -1,6 +1,5 @@
 package ru.tflow.mapping.repository;
 
-import ru.tflow.mapping.CassandraRepository;
 import ru.tflow.mapping.DatatableManager;
 import ru.tflow.mapping.MapperConfiguration;
 import ru.tflow.mapping.entity.SimpleEntity;
@@ -18,7 +17,7 @@ public class AdvancedSimpleEntityRepository implements DatatableManager<SimpleEn
     }
 
     @Override
-    public MapperConfiguration configuration() {
+    public MapperConfiguration conf() {
         return ConfigurationHolder.configuration();
     }
 }

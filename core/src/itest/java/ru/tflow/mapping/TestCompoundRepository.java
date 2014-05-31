@@ -1,6 +1,5 @@
 package ru.tflow.mapping;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import ru.tflow.mapping.entity.CompoundKeyEntity;
@@ -13,17 +12,13 @@ import java.net.UnknownHostException;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  *
  * Created by nagakhl on 3/28/2014.
  */
 public class TestCompoundRepository {
-
-    private static AbstractMapperConfiguration conf;
 
     private CompoundRepository repository;
 
@@ -71,7 +66,7 @@ public class TestCompoundRepository {
     }
 
     protected void testFindOne() {
-        assertEquals(entity1, repository.find(entity1.getClusteringId(), entity1.getTime(), entity1.getPartId()));
+        assertEquals(entity1, repository.findOne(entity1.getClusteringId(), entity1.getTime(), entity1.getPartId()).get());
         try {
             repository.findOne(entity1.getClusteringId());
             fail("Should throw exception on attempt to find one.");

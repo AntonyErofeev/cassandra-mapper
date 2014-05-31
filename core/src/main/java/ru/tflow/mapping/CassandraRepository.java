@@ -1,10 +1,10 @@
 package ru.tflow.mapping;
 
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import ru.tflow.mapping.exceptions.DuplicateKeyException;
-import ru.tflow.mapping.utils.MappingUtils;
 import ru.tflow.mapping.utils.Tuple2;
 
 import java.lang.reflect.Method;
@@ -13,6 +13,8 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.joining;
+import static ru.tflow.mapping.utils.MappingUtils.bindKeys;
+import static ru.tflow.mapping.utils.MappingUtils.compound;
 import static ru.tflow.mapping.utils.ReflectionUtils.*;
 
 /**
@@ -21,16 +23,6 @@ import static ru.tflow.mapping.utils.ReflectionUtils.*;
  * Time: 8:35 PM
  */
 public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
-
-    /**
-     * Create bound statement from query
-     *
-     * @param query Query string
-     * @return BoundStatement object
-     */
-    default BoundStatement boundStatement(String query) {
-        return new BoundStatement(configuration().session().prepare(query));
-    }
 
     /**
      * Find entity by it's keys
@@ -46,7 +38,7 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
             return Optional.empty();
         }
         if (result.size() > 1) {
-            throw new DuplicateKeyException("More than one record found", key, configuration().metadata(getClass()).getEntityClass());
+            throw new DuplicateKeyException("More than one record found", key, conf().metadata(getClass()).getEntityClass());
         }
         return Optional.of(result.get(0));
     }
@@ -61,15 +53,23 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
     @SuppressWarnings("unchecked")
     public default List<E> find(K key, Object... compound) {
 
-        String selectTemplate = "select * from %s.%s where %s=? %s";
-        String compoundKeys = MappingUtils.compound(configuration().metadata(getClass()), compound);
-        Object[] params = MappingUtils.parameters(configuration().metadata(getClass()), key, compound);
+        final String queryKey = "find";
 
-        ResultSet rs = configuration().session().execute(boundStatement(String.format(selectTemplate,
-            configuration().keyspace(),
-            configuration().metadata(getClass()).getTable(),
-            configuration().metadata(getClass()).getPrimaryKey().getName(),
-            compoundKeys)).bind(params));
+        PreparedStatement statement = conf().getStatement(conf().metadata(getClass()).getEntityClass(), queryKey).orElseGet(() -> {
+            String selectTemplate = "select * from %s.%s where %s=? %s";
+            String compoundKeys = compound(conf().metadata(getClass()), compound);
+
+            PreparedStatement stm = conf().session().prepare(String.format(selectTemplate,
+                conf().keyspace(),
+                conf().metadata(getClass()).getTable(),
+                conf().metadata(getClass()).getPrimaryKey().getName(), compoundKeys));
+
+            conf().putStatement(conf().metadata(getClass()).getEntityClass(), queryKey, stm);
+
+            return stm;
+        });
+
+        ResultSet rs = conf().session().execute(bindKeys(statement, conf().metadata(getClass()), key, compound));
 
         if (rs.isExhausted()) {
             return Collections.emptyList();
@@ -77,8 +77,8 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
 
         List result = new ArrayList<>();
         for (Row row : rs.all()) {
-            final Object instance = instantiate(configuration().metadata(getClass()).getEntityClass());
-            configuration().fields(getClass()).stream().forEachOrdered(f -> {
+            final Object instance = instantiate(conf().metadata(getClass()).getEntityClass());
+            conf().fields(getClass()).stream().forEachOrdered(f -> {
                 ByteBuffer value = row.getBytesUnsafe(f.getName());
                 if (value != null) {
                     setField(f.getField(), instance, f.getFieldType().deserialize(value));
@@ -96,16 +96,25 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
      */
     @SuppressWarnings("unchecked")
     public default List<E> findAll(int limit) {
-        String selectTemplate = "select * from %s.%s limit ?";
-        ResultSet set = configuration().session().execute(String.format(selectTemplate, configuration().keyspace(), configuration().metadata(getClass()).getTable()), limit);
+
+        final String queryKey = "findAll";
+
+        PreparedStatement stm = conf().getStatement(conf().metadata(getClass()).getEntityClass(), queryKey).orElseGet(() -> {
+            String selectTemplate = "select * from %s.%s limit ?";
+            PreparedStatement _stm = conf().session().prepare(String.format(selectTemplate, conf().keyspace(), conf().metadata(getClass()).getTable()));
+            conf().putStatement(conf().metadata(getClass()).getEntityClass(), queryKey, _stm);
+            return _stm;
+        });
+
+        ResultSet set = conf().session().execute(stm.bind(limit));
         if (set.isExhausted()) {
             return Collections.emptyList();
         }
 
         List result = new ArrayList<>();
         for (Row row : set.all()) {
-            final Object instance = instantiate(configuration().metadata(getClass()).getEntityClass());
-            configuration().fields(getClass()).stream().forEachOrdered(f -> {
+            final Object instance = instantiate(conf().metadata(getClass()).getEntityClass());
+            conf().fields(getClass()).stream().forEachOrdered(f -> {
                 ByteBuffer value = row.getBytesUnsafe(f.getName());
                 if (value != null) {
                     setField(f.getField(), instance, f.getFieldType().deserialize(value));
@@ -123,23 +132,28 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
      * @throws DuplicateKeyException if there is already entity with such key in database
      */
     public default void save(E entity) throws DuplicateKeyException {
-        String insertTemplate = "insert into %s.%s (%s) values (%s)";
 
-        List<FieldMetadata> fm = configuration().fields(getClass());
+        final String queryKey = "save";
 
-        String fields = fm.stream().map(FieldMetadata::getName).collect(joining(", "));
-        String values = fm.stream().map(f -> "?").collect(joining(", "));
-        String str = String.format(insertTemplate, configuration().keyspace(), configuration().metadata(getClass()).getTable(), fields, values);
+        BoundStatement stm = conf().getStatement(conf().metadata(getClass()).getEntityClass(), queryKey).orElseGet(() -> {
+            String insertTemplate = "insert into %s.%s (%s) values (%s)";
+            List<FieldMetadata> fm = conf().fields(getClass());
+            String fields = fm.stream().map(FieldMetadata::getName).collect(joining(", "));
+            String values = fm.stream().map(f -> "?").collect(joining(", "));
+            String str = String.format(insertTemplate, conf().keyspace(), conf().metadata(getClass()).getTable(), fields, values);
 
-        log.debug("====> Inserting entity with query: {}", str);
-        BoundStatement stm = boundStatement(str);
-        PrimitiveIterator.OfInt counting = IntStream.range(0, configuration().metadata(getClass()).getFields().size()).iterator();
+            PreparedStatement _stm = conf().session().prepare(str);
+            conf().putStatement(conf().metadata(getClass()).getEntityClass(), queryKey, _stm);
+            return _stm;
+        }).bind();
+
+        PrimitiveIterator.OfInt counting = IntStream.range(0, conf().metadata(getClass()).getFields().size()).iterator();
 
         //Get raw setValue() method of bound statement
         Method setValue = findMethod(stm.getClass(), "setValue", int.class, ByteBuffer.class);
         setValue.setAccessible(true);
 
-        fm.stream().map(f -> new Tuple2<>(counting.next(), f)).forEachOrdered(f -> {
+        conf().fields(getClass()).stream().map(f -> new Tuple2<>(counting.next(), f)).forEachOrdered(f -> {
             Object val = readField(f.getElement2().getField(), entity);
             ByteBuffer value = null;
             if (val != null) {
@@ -147,7 +161,7 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
             }
             invoke(setValue, stm, f.getElement1(), value);
         });
-        configuration().session().execute(stm);
+        conf().session().execute(stm);
     }
 
     /**
@@ -158,16 +172,27 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
      */
     public default void delete(K key, Object... compound) {
         Objects.requireNonNull(key, "Key cannot be null");
-        String deleteTemplate = "delete from %s.%s where %s=? %s";
 
-        String compoundKeys = MappingUtils.compound(configuration().metadata(getClass()), compound);
-        Object[] params = MappingUtils.parameters(configuration().metadata(getClass()), key, compound);
+        final String queryKey = "delete";
 
-        configuration().session().execute(boundStatement(String.format(deleteTemplate,
-            configuration().keyspace(),
-            configuration().metadata(getClass()).getTable(),
-            configuration().metadata(getClass()).getPrimaryKey().getName(),
-            compoundKeys)).bind(params));
+        PreparedStatement stm = conf().getStatement(conf().metadata(getClass()).getEntityClass(), queryKey).orElseGet(() -> {
+            String deleteTemplate = "delete from %s.%s where %s=? %s";
+            String compoundKeys = compound(conf().metadata(getClass()), compound);
+
+            String query = String.format(deleteTemplate,
+                conf().keyspace(),
+                conf().metadata(getClass()).getTable(),
+                conf().metadata(getClass()).getPrimaryKey().getName(),
+                compoundKeys);
+
+            PreparedStatement _stm = conf().session().prepare(query);
+            conf().putStatement(conf().metadata(getClass()).getEntityClass(), queryKey, _stm);
+
+            return _stm;
+
+        });
+
+        conf().session().execute(bindKeys(stm, conf().metadata(getClass()), key, compound));
 
     }
 

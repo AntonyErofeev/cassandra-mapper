@@ -1,9 +1,7 @@
 package ru.tflow.mapping;
 
 import com.datastax.driver.core.DataType;
-import org.apache.commons.lang3.ClassUtils;
 import ru.tflow.mapping.exceptions.CorruptedMappingException;
-import ru.tflow.mapping.utils.ReflectionUtils;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
@@ -103,10 +101,22 @@ public class ExtendedDataType {
         return deserialize.apply(b);
     }
 
+    /**
+     * Convert original value from mapped object field to cassandra type
+     *
+     * @param o Value to convert
+     * @return Object, containing value that can be directly stored in cassandra database
+     */
     public Object toMapped(Object o) {
         return isExtended() ? mappedType.deserialize(serialize.apply(o)) : o;
     }
 
+    /**
+     * Convert value received from database to mapped object's field value
+     *
+     * @param o Value to convert
+     * @return Value that can be set on object
+     */
     public Object toOriginal(Object o) {
         return isExtended() ? deserialize.apply(mappedType.serialize(o)) : o;
     }

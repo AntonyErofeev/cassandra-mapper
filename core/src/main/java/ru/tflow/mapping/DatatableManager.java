@@ -22,9 +22,9 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
      * Initialize data table for entity. If table doesn't exist - create it, else - try to update.
      */
     public default void initTable() {
-        EntityMetadata m = configuration().metadata(getClass());
+        EntityMetadata m = conf().metadata(getClass());
 
-        TableMetadata tm = configuration().session().getCluster().getMetadata().getKeyspace(configuration().keyspace()).getTable(m.getTable());
+        TableMetadata tm = conf().session().getCluster().getMetadata().getKeyspace(conf().keyspace()).getTable(m.getTable());
 
         if (tm == null) {
             log.info("=====> Table {} for entity {} not found. Creating new.", m.getTable(), m.getEntityClass().getName());
@@ -32,7 +32,7 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
             String command = createTableCommand();
             log.info("=====> Command for table creation is: \n{}", command);
 
-            configuration().session().execute(command);
+            conf().session().execute(command);
         } else {
             log.info("=====> Table {} for entity {} found. Checking if update is needed.", m.getTable(), m.getEntityClass().getName());
 
@@ -41,7 +41,7 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
                 log.info("=====> No changes found.");
             } else {
                 log.info("=====> Generated update commands are: \n{}", updateCommands.stream().collect(joining("\n")));
-                updateCommands.forEach(c -> configuration().session().execute(c));
+                updateCommands.forEach(c -> conf().session().execute(c));
             }
         }
     }
@@ -54,17 +54,17 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
     public default String createTableCommand() {
         String template = "create table %s.%s (%s, primary key(%s))";
 
-        String fieldsString = configuration().fields(getClass()).stream()
+        String fieldsString = conf().fields(getClass()).stream()
             .map(md -> md.getName() + " " + MappingUtils.formatFieldType(md))
             .collect(joining(", "));
 
         List<FieldMetadata> keys = new ArrayList<>();
-        keys.add(configuration().metadata(getClass()).getPrimaryKey());
-        keys.addAll(configuration().metadata(getClass()).getKeys());
+        keys.add(conf().metadata(getClass()).getPrimaryKey());
+        keys.addAll(conf().metadata(getClass()).getKeys());
 
         String keysString = keys.stream().map(FieldMetadata::getName).collect(joining(", "));
 
-        return String.format(template, configuration().keyspace(), configuration().metadata(getClass()).getTable(), fieldsString, keysString);
+        return String.format(template, conf().keyspace(), conf().metadata(getClass()).getTable(), fieldsString, keysString);
     }
 
     /**
@@ -78,7 +78,7 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
         String dropColumnTemplate = "alter table %s.%s drop %s";
         List<String> commands = new ArrayList<>();
 
-        configuration().metadata(getClass()).getFields().forEach(f -> {
+        conf().metadata(getClass()).getFields().forEach(f -> {
             if (tm.getColumn(f.getName()) != null) {
                 DataType columnType = tm.getColumn(f.getName()).getType();
                 DataType mappedType = f.getFieldType().getMappedType();
@@ -87,17 +87,17 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
                     if (!(columnType.getName().equals(DataType.Name.CUSTOM) && ByteBuffer.class.isAssignableFrom(f.getFieldType().getOriginalType()))) {
                         log.debug("===> Checking column: {}. Type is: {}, Corresponding field type is {}",
                             tm.getColumn(f.getName()), tm.getColumn(f.getName()).getType(), f.getFieldType().getMappedType());
-                        if (!configuration().failOnUpdate()) {
-                            commands.add(String.format(dropColumnTemplate, configuration().keyspace(), configuration().metadata(getClass()).getTable(), f.getName()));
+                        if (!conf().failOnUpdate()) {
+                            commands.add(String.format(dropColumnTemplate, conf().keyspace(), conf().metadata(getClass()).getTable(), f.getName()));
                             commands.add(String.format(addColumnTemplate,
-                                configuration().keyspace(), configuration().metadata(getClass()).getTable(), f.getName(), MappingUtils.formatFieldType(f)));
+                                conf().keyspace(), conf().metadata(getClass()).getTable(), f.getName(), MappingUtils.formatFieldType(f)));
                         } else {
                             throw new CorruptedMappingException(
                                 String.format("Cannot update table %s, column %s is of type %s instead of %s ",
-                                    configuration().metadata(getClass()).getTable(),
+                                    conf().metadata(getClass()).getTable(),
                                     f.getName(),
                                     tm.getColumn(f.getName()).getType().getName().toString(),
-                                    f.getFieldType().getMappedType().getName().toString()), configuration().metadata(getClass()).getEntityClass()
+                                    f.getFieldType().getMappedType().getName().toString()), conf().metadata(getClass()).getEntityClass()
                             );
                         }
                     } else {
@@ -106,7 +106,7 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
                 }
             } else {
                 commands.add(String.format(addColumnTemplate,
-                    configuration().keyspace(), configuration().metadata(getClass()).getTable(), f.getName(), MappingUtils.formatFieldType(f)));
+                    conf().keyspace(), conf().metadata(getClass()).getTable(), f.getName(), MappingUtils.formatFieldType(f)));
             }
         });
         return commands;

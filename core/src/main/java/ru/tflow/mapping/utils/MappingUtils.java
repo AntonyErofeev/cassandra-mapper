@@ -1,5 +1,7 @@
 package ru.tflow.mapping.utils;
 
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.PreparedStatement;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import ru.tflow.mapping.CassandraRepository;
 import ru.tflow.mapping.EntityMetadata;
@@ -7,25 +9,50 @@ import ru.tflow.mapping.FieldMetadata;
 import ru.tflow.mapping.resolvers.MappingResolver;
 import ru.tflow.mapping.exceptions.CorruptedMappingException;
 
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Created by erofeev on 2/17/14.
+ * Static helper methods.
+ *
+ * Created by nagakhl on 2/17/14.
  */
 public class MappingUtils {
 
     /**
      * Create query parameter array from primary and compound keys
      */
-    public static Object[] parameters(EntityMetadata metadata, Object key, Object... compound) {
+    public static ByteBuffer[] parameters(EntityMetadata metadata, Object key, Object... compound) {
         Objects.requireNonNull(key, "Key cannot be null");
-        Object[] params = new Object[1 + compound.length];
-        params[0] = key;
+        ByteBuffer[] params = new ByteBuffer[1 + compound.length];
+        params[0] = metadata.getPrimaryKey().getFieldType().serialize(key);
         for (int i = 0; i < compound.length; i++) {
-            params[i + 1] = metadata.getKeys().get(i).getFieldType().toOriginal(compound[i]);
+            params[i + 1] = metadata.getKeys().get(i).getFieldType().serialize(compound[i]);
         }
         return params;
+    }
+
+    /**
+     * Bind primary and compound keys to given prepared statement
+     *
+     * @param stm PreparedStatement
+     * @param em EntityMetadata
+     * @param key Primary key
+     * @param compound Compound keys in order from @Compound annotations
+     * @return BoundStatement with needed parameters bound
+     */
+    public static BoundStatement bindKeys(PreparedStatement stm, EntityMetadata em, Object key, Object... compound) {
+        ByteBuffer[] parameters = parameters(em, key, compound);
+        BoundStatement bStm = stm.bind();
+        Method setValueMethod = ReflectionUtils.findMethod(BoundStatement.class, "setValue", Integer.TYPE, ByteBuffer.class);
+        setValueMethod.setAccessible(true);
+        ReflectionUtils.invoke(setValueMethod, bStm, 0, parameters[0]);
+        for (int i = 1; i < parameters.length; i++) {
+            ReflectionUtils.invoke(setValueMethod, bStm, i, parameters[i]);
+        }
+        return bStm;
     }
 
     /**

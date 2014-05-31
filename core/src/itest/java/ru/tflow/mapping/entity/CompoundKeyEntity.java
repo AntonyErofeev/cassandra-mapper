@@ -10,9 +10,10 @@ import java.time.ZonedDateTime;
 import java.util.UUID;
 
 /**
+ *
  * Created by nagakhl on 3/25/2014.
  */
-@Table("conmpound")
+@Table("compound")
 public class CompoundKeyEntity {
 
     @Id
@@ -75,13 +76,12 @@ public class CompoundKeyEntity {
 
         CompoundKeyEntity that = (CompoundKeyEntity) o;
 
-        if (partId != that.partId) return false;
-        if (address != null ? !address.equals(that.address) : that.address != null) return false;
-        if (clusteringId != null ? !clusteringId.equals(that.clusteringId) : that.clusteringId != null) return false;
-        if (number != null ? !number.equals(that.number) : that.number != null) return false;
-        if (time != null ? !time.equals(that.time) : that.time != null) return false;
+        return partId == that.partId
+            && !(address != null ? !address.equals(that.getAddress()) : that.address != null)
+            && !(clusteringId != null ? !clusteringId.equals(that.getClusteringId()) : that.clusteringId != null)
+            && !(number != null ? !number.equals(that.getNumber()) : that.number != null)
+            && !(time != null ? !time.equals(that.getTime()) : that.time != null);
 
-        return true;
     }
 
     @Override

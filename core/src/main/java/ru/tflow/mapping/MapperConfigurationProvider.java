@@ -12,6 +12,6 @@ public interface MapperConfigurationProvider {
 
     static final Logger log = LoggerFactory.getLogger(CassandraRepository.class);
 
-    public MapperConfiguration configuration();
+    public MapperConfiguration conf();
 
 }

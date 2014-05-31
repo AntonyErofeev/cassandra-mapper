@@ -1,9 +1,11 @@
 package ru.tflow.mapping;
 
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import ru.tflow.mapping.resolvers.MappingResolver;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Interface defining all configuration needed for mapper to operate
@@ -46,6 +48,24 @@ public interface MapperConfiguration {
      * @return EntityMetadata
      */
     public EntityMetadata metadata(Class<?> repository);
+
+    /**
+     * Get prepared statement from inner statement cache
+     *
+     * @param mappedObject Mapped object class for which to search query
+     * @param queryType String identifier of query
+     * @return Optional of BoundStatement
+     */
+    public Optional<PreparedStatement> getStatement(Class<?> mappedObject, String queryType);
+
+    /**
+     * Put bound statement to cache
+     *
+     * @param mappedObject Mapped object class for which to search query
+     * @param queryType String identifier of query
+     * @param stm Statement to put to cache
+     */
+    public void putStatement(Class<?> mappedObject, String queryType, PreparedStatement stm);
 
     /**
      * Get metadata fields
