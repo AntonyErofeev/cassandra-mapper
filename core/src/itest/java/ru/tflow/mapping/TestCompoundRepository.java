@@ -56,7 +56,6 @@ public class TestCompoundRepository {
         testSave();
         testFindOne();
         testFind();
-        testFindAll();
     }
 
     protected void testSave() {
@@ -73,12 +72,8 @@ public class TestCompoundRepository {
         } catch (DuplicateKeyException ex) {
             //do nothing here
         }
-        assertEquals(entity2, repository.find(entity2.getClusteringId(), entity2.getTime(), entity2.getPartId()));
-        assertEquals(entity3, repository.find(entity3.getClusteringId(), entity3.getTime(), entity3.getPartId()));
-    }
-
-    protected void testFindAll() {
-        assertArrayEquals(new CompoundKeyEntity[]{entity1, entity2, entity3}, repository.findAll(Integer.MAX_VALUE).toArray(new CompoundKeyEntity[3]));
+        assertEquals(entity2, repository.findOne(entity2.getClusteringId(), entity2.getTime(), entity2.getPartId()).get());
+        assertEquals(entity3, repository.findOne(entity3.getClusteringId(), entity3.getTime(), entity3.getPartId()).get());
     }
 
     protected void testFind() {

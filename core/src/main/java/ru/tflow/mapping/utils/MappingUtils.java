@@ -79,8 +79,10 @@ public class MappingUtils {
         String compoundKeys = "";
         if (compound != null && compound.length > 0) {
             StringBuilder compoundTemplate = new StringBuilder();
-            for (FieldMetadata fm : metadata.getKeys()) {
-                compoundTemplate.append(" and ").append(fm.getName()).append("=?");
+            for (int i = 0; i < compound.length; i++) {
+                if (metadata.getKeys().size() > i) {
+                    compoundTemplate.append(" and ").append(metadata.getKeys().get(i).getName()).append("=?");
+                }
             }
             compoundKeys = compoundTemplate.toString();
         }

@@ -1,19 +1,14 @@
 package ru.tflow.mapping;
 
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import ru.tflow.mapping.entity.SimpleEntity;
 import ru.tflow.mapping.repository.AdvancedSimpleEntityRepository;
-import ru.tflow.mapping.repository.ConfigurationHolder;
 
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertTrue;
@@ -25,16 +20,9 @@ import static ru.tflow.mapping.entity.SimpleEntity.AdvancedSimpleEntity;
  */
 public class TestSimpleEntityRepository {
 
-    private static AbstractMapperConfiguration conf;
-
     private AdvancedSimpleEntity entity;
 
     private AdvancedSimpleEntityRepository repository;
-
-    @BeforeClass
-    public static void init() {
-        conf = ConfigurationHolder.configuration();
-    }
 
     @Before
     public void dInit() throws Exception {
@@ -48,13 +36,15 @@ public class TestSimpleEntityRepository {
         entity.setDt(ZonedDateTime.now());
         entity.setType(SimpleEntity.Type.ADVANCED);
         entity.setUrl(new URL("http://localhost:8888/"));
+        GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+        entity.setDate(calendar.getTime());
     }
 
     @Test
     public void test() throws Exception {
         testSave();
-        testRetrieveAll();
         testRetrieveOne();
+        testRetrieveAll();
     }
 
     protected void testSave() {
@@ -63,13 +53,11 @@ public class TestSimpleEntityRepository {
 
     protected void testRetrieveOne() {
         Optional<AdvancedSimpleEntity> _entity = repository.findOne(entity.getKey());
-        _entity.get().setDt(_entity.get().getDt().withZoneSameInstant(ZoneId.systemDefault()));
         assertTrue(entity.equals(_entity.get()));
     }
 
     protected void testRetrieveAll() {
         List<AdvancedSimpleEntity> all = repository.findAll(Integer.MAX_VALUE);
-        all.forEach(e -> e.setDt(e.getDt().withZoneSameInstant(ZoneId.systemDefault())));
         Stream<AdvancedSimpleEntity> stream = all.stream().filter(e -> e.equals(entity));
         assertTrue(stream.findAny().isPresent());
     }

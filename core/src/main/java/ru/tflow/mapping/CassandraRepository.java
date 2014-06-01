@@ -53,7 +53,9 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
     @SuppressWarnings("unchecked")
     public default List<E> find(K key, Object... compound) {
 
-        final String queryKey = "find";
+        Objects.requireNonNull(key, "Primary key cannot be empty when using find method.");
+
+        final String queryKey = "find_" + compound.length;
 
         PreparedStatement statement = conf().getStatement(conf().metadata(getClass()).getEntityClass(), queryKey).orElseGet(() -> {
             String selectTemplate = "select * from %s.%s where %s=? %s";

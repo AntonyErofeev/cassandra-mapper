@@ -1,19 +1,17 @@
 package ru.tflow.mapping.resolvers;
 
 import com.datastax.driver.core.DataType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.tflow.mapping.ExtendedDataType;
-import ru.tflow.mapping.utils.Tuple3;
 
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Optional;
-import java.util.function.Function;
 
 /**
  * Node capable of resolving additional types that can be easily enough converted into cassandra types
@@ -61,15 +59,15 @@ public class ExtendedResolverNode implements ChainNode, ClassResolver {
         }
 
         if (LocalDateTime.class.isAssignableFrom(c)) {
-            return Optional.of(new ExtendedDataType(c, DataType.timestamp(),
-                    (o) -> DataType.timestamp().serialize(new Date(((LocalDateTime) o).toInstant(ZoneOffset.UTC).toEpochMilli())),
-                    (b) -> LocalDateTime.ofInstant(Instant.ofEpochMilli(((Date) DataType.timestamp().deserialize(b)).getTime()), ZoneId.of("UTC"))));
+            return Optional.of(new ExtendedDataType(c, DataType.ascii(),
+                    (o) -> DataType.ascii().serialize(((LocalDateTime) o).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)),
+                    (b) -> LocalDateTime.parse((String) DataType.ascii().deserialize(b))));
         }
 
         if (ZonedDateTime.class.isAssignableFrom(c)) {
-            return Optional.of(new ExtendedDataType(c, DataType.timestamp(),
-                    (o) -> DataType.timestamp().serialize(new Date(((ZonedDateTime) o).toInstant().toEpochMilli())),
-                    (b) -> ZonedDateTime.ofInstant(Instant.ofEpochMilli(((Date) DataType.timestamp().deserialize(b)).getTime()), ZoneId.of("UTC"))));
+            return Optional.of(new ExtendedDataType(c, DataType.ascii(),
+                    (o) -> DataType.ascii().serialize(((ZonedDateTime) o).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)),
+                    (b) -> ZonedDateTime.parse((String) DataType.ascii().deserialize(b))));
         }
 
         return Optional.empty();

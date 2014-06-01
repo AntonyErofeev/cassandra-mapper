@@ -5,10 +5,10 @@ import ru.tflow.mapping.annotations.Id;
 import ru.tflow.mapping.annotations.Table;
 import ru.tflow.mapping.annotations.Transitional;
 
-import javax.swing.text.html.parser.Entity;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.UUID;
 
 /**
@@ -92,6 +92,8 @@ public class SimpleEntity {
 
         private ZonedDateTime dt;
 
+        private Date date;
+
         public Type getType() {
             return type;
         }
@@ -116,25 +118,37 @@ public class SimpleEntity {
             this.dt = dt;
         }
 
+        public Date getDate() {
+            return date;
+        }
+
+        public void setDate(Date date) {
+            this.date = date;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (!(o instanceof AdvancedSimpleEntity)) return false;
+            if (!super.equals(o)) return false;
 
             AdvancedSimpleEntity that = (AdvancedSimpleEntity) o;
 
+            if (date != null ? !date.equals(that.date) : that.date != null) return false;
             if (dt != null ? !dt.equals(that.dt) : that.dt != null) return false;
             if (type != that.type) return false;
             if (url != null ? !url.equals(that.url) : that.url != null) return false;
 
-            return super.equals(o);
+            return true;
         }
 
         @Override
         public int hashCode() {
-            int result = type != null ? type.hashCode() : 0;
+            int result = super.hashCode();
+            result = 31 * result + (type != null ? type.hashCode() : 0);
             result = 31 * result + (url != null ? url.hashCode() : 0);
             result = 31 * result + (dt != null ? dt.hashCode() : 0);
+            result = 31 * result + (date != null ? date.hashCode() : 0);
             return result;
         }
     }
