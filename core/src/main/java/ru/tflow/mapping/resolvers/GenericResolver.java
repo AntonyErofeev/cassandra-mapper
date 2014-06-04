@@ -38,12 +38,10 @@ public abstract  class GenericResolver {
      * @throws CorruptedMappingException if type argument cannot be resolved to cassandra type or given field doesn't contain type arguments
      */
     protected Map<String, ExtendedDataType> argumentType(Field field, Class<?> genericClass) throws CorruptedMappingException {
-        Class<?> fClass = field.getType();
-
         if (!genericClass.isAssignableFrom(field.getType()))
             throw new CorruptedMappingException("Field: " + field.getName() + " cannot be cast to: " + genericClass.getName(), field.getDeclaringClass());
 
-        return TypeUtils.getTypeArguments(field.getType(), genericClass).entrySet().stream()
+        return TypeUtils.getTypeArguments(field.getGenericType(), genericClass).entrySet().stream()
                 .filter(e -> e.getKey().getGenericDeclaration().equals(genericClass))
                 .map(e -> {
                     Optional<ExtendedDataType> type = resolveGenericParam((Class<?>) e.getValue());
