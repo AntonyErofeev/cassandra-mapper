@@ -31,4 +31,9 @@ public class ChainedResolver implements MappingResolver {
         }
         return Optional.empty();
     }
+
+    protected List<ChainNode> getResolverChain() {
+        return resolverChain;
+    }
+
 }

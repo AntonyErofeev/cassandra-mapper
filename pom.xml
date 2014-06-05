@@ -6,7 +6,7 @@
   <groupId>cassandra-mapper</groupId>
   <artifactId>mapper</artifactId>
   <packaging>pom</packaging>
-  <version>0.8</version>
+  <version>0.9</version>
   <name>Root project for Cassandra mapper</name>
 
   <modules>
@@ -15,7 +15,7 @@
   </modules>
 
   <properties>
-    <global.version>0.8</global.version>
+    <global.version>0.9</global.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
