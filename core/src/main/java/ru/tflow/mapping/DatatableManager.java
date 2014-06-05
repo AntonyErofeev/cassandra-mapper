@@ -89,16 +89,18 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
                     columnType = DataType.blob();
                 }
 
+                List<DataType> tArgs = columnType.getTypeArguments();
+
                 //The same strange behaviour with blobs for type arguments of collections
-                if (columnType.isCollection() && columnType.getTypeArguments().contains(cBytesType)) {
-                    if (columnType.equals(DataType.list(columnType.getTypeArguments().get(0)))) {
+                if (columnType.isCollection() && tArgs.contains(cBytesType)) {
+                    if (columnType.equals(DataType.list(tArgs.get(0)))) {
                         columnType = DataType.list(DataType.blob());
-                    } else if (columnType.equals(DataType.set(columnType.getTypeArguments().get(0)))) {
+                    } else if (columnType.equals(DataType.set(tArgs.get(0)))) {
                         columnType = DataType.set(DataType.blob());
-                    } else if (columnType.equals(DataType.map(columnType.getTypeArguments().get(0), columnType.getTypeArguments().get(1)))) {
+                    } else if (columnType.equals(DataType.map(tArgs.get(0), tArgs.get(1)))) {
                         columnType = DataType.map(
-                                columnType.getTypeArguments().get(0).equals(cBytesType) ? DataType.blob() : columnType.getTypeArguments().get(0),
-                                columnType.getTypeArguments().get(1).equals(cBytesType) ? DataType.blob() : columnType.getTypeArguments().get(1));
+                                tArgs.get(0).equals(cBytesType) ? DataType.blob() : tArgs.get(0),
+                                tArgs.get(1).equals(cBytesType) ? DataType.blob() : tArgs.get(1));
                     }
                 }
 
