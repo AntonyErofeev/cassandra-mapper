@@ -20,6 +20,10 @@ public class CollectionContainingEntity {
     @Id
     private UUID uid;
 
+    private ByteBuffer data;
+
+    private List<ByteBuffer> dataList;
+
     private List<Integer> intList;
 
     private List<ZonedDateTime> dateTimeList;
@@ -44,12 +48,28 @@ public class CollectionContainingEntity {
         this.uid = uid;
     }
 
+    public ByteBuffer getData() {
+        return data;
+    }
+
+    public void setData(ByteBuffer data) {
+        this.data = data;
+    }
+
     public List<Integer> getIntList() {
         return intList;
     }
 
     public void setIntList(List<Integer> intList) {
         this.intList = intList;
+    }
+
+    public List<ByteBuffer> getDataList() {
+        return dataList;
+    }
+
+    public void setDataList(List<ByteBuffer> dataList) {
+        this.dataList = dataList;
     }
 
     public List<ZonedDateTime> getDateTimeList() {
@@ -99,6 +119,7 @@ public class CollectionContainingEntity {
 
         CollectionContainingEntity that = (CollectionContainingEntity) o;
 
+        if (data != null ? !data.equals(that.data) : that.data != null) return false;
         if (dateTimeList != null ? !dateTimeList.equals(that.dateTimeList) : that.dateTimeList != null) return false;
         if (instantSet != null ? !instantSet.equals(that.instantSet) : that.instantSet != null) return false;
         if (intList != null ? !intList.equals(that.intList) : that.intList != null) return false;

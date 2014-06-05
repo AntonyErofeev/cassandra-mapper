@@ -81,28 +81,46 @@ public interface DatatableManager<E, K> extends CassandraRepository<E, K> {
         conf().metadata(getClass()).getFields().forEach(f -> {
             if (tm.getColumn(f.getName()) != null) {
                 DataType columnType = tm.getColumn(f.getName()).getType();
+
+                DataType cBytesType = DataType.custom("org.apache.cassandra.db.marshal.BytesType");
+
+                //Table metadata returns this type for blob mappings instead of original one
+                if (columnType.equals(cBytesType)) {
+                    columnType = DataType.blob();
+                }
+
+                //The same strange behaviour with blobs for type arguments of collections
+                if (columnType.isCollection() && columnType.getTypeArguments().contains(cBytesType)) {
+                    if (columnType.equals(DataType.list(columnType.getTypeArguments().get(0)))) {
+                        columnType = DataType.list(DataType.blob());
+                    } else if (columnType.equals(DataType.set(columnType.getTypeArguments().get(0)))) {
+                        columnType = DataType.set(DataType.blob());
+                    } else if (columnType.equals(DataType.map(columnType.getTypeArguments().get(0), columnType.getTypeArguments().get(1)))) {
+                        columnType = DataType.map(
+                                columnType.getTypeArguments().get(0).equals(cBytesType) ? DataType.blob() : columnType.getTypeArguments().get(0),
+                                columnType.getTypeArguments().get(1).equals(cBytesType) ? DataType.blob() : columnType.getTypeArguments().get(1));
+                    }
+                }
+
                 DataType mappedType = f.getFieldType().getMappedType();
                 if (!columnType.equals(mappedType)) {
                     //A strange bug or feature of driver||database. Blob type in datatable is interpreted as custom type, not DataType.Name.BLOB
-                    if (!(columnType.getName().equals(DataType.Name.CUSTOM) && ByteBuffer.class.isAssignableFrom(f.getFieldType().getOriginalType()))) {
-                        log.debug("===> Checking column: {}. Type is: {}, Corresponding field type is {}",
-                            tm.getColumn(f.getName()), tm.getColumn(f.getName()).getType(), f.getFieldType().getMappedType());
-                        if (!conf().failOnUpdate()) {
-                            commands.add(String.format(dropColumnTemplate, conf().keyspace(), conf().metadata(getClass()).getTable(), f.getName()));
-                            commands.add(String.format(addColumnTemplate,
-                                conf().keyspace(), conf().metadata(getClass()).getTable(), f.getName(), MappingUtils.formatFieldType(f)));
-                        } else {
-                            throw new CorruptedMappingException(
-                                String.format("Cannot update table %s, column %s is of type %s instead of %s ",
-                                    conf().metadata(getClass()).getTable(),
-                                    f.getName(),
-                                    tm.getColumn(f.getName()).getType().getName().toString(),
-                                    f.getFieldType().getMappedType().getName().toString()), conf().metadata(getClass()).getEntityClass()
-                            );
-                        }
+                    log.debug("===> Checking column: {}. Type is: {}, Corresponding field type is {}",
+                        tm.getColumn(f.getName()), tm.getColumn(f.getName()).getType(), f.getFieldType().getMappedType());
+                    if (!conf().failOnUpdate()) {
+                        commands.add(String.format(dropColumnTemplate, conf().keyspace(), conf().metadata(getClass()).getTable(), f.getName()));
+                        commands.add(String.format(addColumnTemplate,
+                            conf().keyspace(), conf().metadata(getClass()).getTable(), f.getName(), MappingUtils.formatFieldType(f)));
                     } else {
-                        log.info("=====> Cassandra custom data type is mapped to byte buffer, skipping.");
+                        throw new CorruptedMappingException(
+                            String.format("Cannot update table %s, column %s is of type %s instead of %s ",
+                                conf().metadata(getClass()).getTable(),
+                                f.getName(),
+                                tm.getColumn(f.getName()).getType().getName().toString(),
+                                f.getFieldType().getMappedType().getName().toString()), conf().metadata(getClass()).getEntityClass()
+                        );
                     }
+
                 }
             } else {
                 commands.add(String.format(addColumnTemplate,
