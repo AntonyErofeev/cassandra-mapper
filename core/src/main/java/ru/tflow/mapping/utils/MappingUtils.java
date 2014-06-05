@@ -3,6 +3,8 @@ package ru.tflow.mapping.utils;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import org.apache.commons.lang3.reflect.TypeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.tflow.mapping.CassandraRepository;
 import ru.tflow.mapping.EntityMetadata;
 import ru.tflow.mapping.FieldMetadata;
@@ -11,6 +13,7 @@ import ru.tflow.mapping.exceptions.CorruptedMappingException;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -21,14 +24,22 @@ import java.util.stream.Collectors;
  */
 public class MappingUtils {
 
+    private static Logger log = LoggerFactory.getLogger(MappingUtils.class);
+
     /**
      * Create query parameter array from primary and compound keys
      */
     public static ByteBuffer[] parameters(EntityMetadata metadata, Object key, Object... compound) {
         Objects.requireNonNull(key, "Key cannot be null");
-        ByteBuffer[] params = new ByteBuffer[1 + compound.length];
+        ByteBuffer[] params = new ByteBuffer[1 + (compound.length <= metadata.getKeys().size() ? compound.length : metadata.getKeys().size())];
         params[0] = metadata.getPrimaryKey().getFieldType().serialize(key);
         for (int i = 0; i < compound.length; i++) {
+            if (i >= metadata.getKeys().size()) {
+                log.warn("=====> More parameters passed as compound keys than detected in entity. Entity: {}, Parameters: {}",
+                        metadata.getEntityClass().getName(),
+                        Arrays.asList(compound).stream().map(o -> o.getClass().getSimpleName() + "[" + o.toString() + "]").collect(Collectors.joining(", ", "{", "}")));
+                break;
+            }
             params[i + 1] = metadata.getKeys().get(i).getFieldType().serialize(compound[i]);
         }
         return params;
