@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation indicating that field having it should be serialized to json string and stored
+ * Annotation indicating that field should be serialized as json string when storing to database
  *
  * User: nagakhl
  * Date: 05.06.2014

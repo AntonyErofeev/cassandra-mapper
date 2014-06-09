@@ -19,6 +19,9 @@ public class JsonContainingEntity {
     @JsonObject
     private SomeData data;
 
+    @JsonObject
+    private Map<String, Object> additionalData;
+
     public UUID getUid() {
         return uid;
     }
@@ -33,6 +36,14 @@ public class JsonContainingEntity {
 
     public void setData(SomeData data) {
         this.data = data;
+    }
+
+    public Map<String, Object> getAdditionalData() {
+        return additionalData;
+    }
+
+    public void setAdditionalData(Map<String, Object> additionalData) {
+        this.additionalData = additionalData;
     }
 
     @Override

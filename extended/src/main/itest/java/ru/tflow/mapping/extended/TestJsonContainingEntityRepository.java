@@ -39,6 +39,8 @@ public class TestJsonContainingEntityRepository {
         data.setParameters(params);
 
         entity.setData(data);
+
+        entity.setAdditionalData(params);
         repository.save(entity);
     }
 
