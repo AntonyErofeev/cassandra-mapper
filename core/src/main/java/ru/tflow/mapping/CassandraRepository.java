@@ -3,18 +3,18 @@ package ru.tflow.mapping;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import ru.tflow.mapping.exceptions.DuplicateKeyException;
 import ru.tflow.mapping.utils.Tuple2;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.joining;
-import static ru.tflow.mapping.utils.MappingUtils.bindKeys;
-import static ru.tflow.mapping.utils.MappingUtils.compound;
+import static ru.tflow.mapping.utils.MappingUtils.*;
 import static ru.tflow.mapping.utils.ReflectionUtils.*;
 
 /**
@@ -41,6 +41,26 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
             throw new DuplicateKeyException("More than one record found", key, conf().metadata(getClass()).getEntityClass());
         }
         return Optional.of(result.get(0));
+    }
+
+    /**
+     * Find several objects with keys provided. Using "where K in (...)" query
+     *
+     * @return List of found objects or empty list if none found.
+     */
+    public default List<E> findSeveral(K... keys) {
+        String queryTemplate = "select * from %s.%s where %s in (%s)";
+
+        Function<Object, String> format = conf().metadata(getClass()).getPrimaryKey().getFieldType().getOriginalType().isAssignableFrom(String.class)
+            ? (o) -> "'" + o + "'" : Object::toString;
+
+        ResultSet rs = conf().session().execute(String.format(queryTemplate,
+            conf().keyspace(),
+            conf().metadata(getClass()).getTable(),
+            conf().metadata(getClass()).getPrimaryKey().getName(),
+            Arrays.asList(keys).stream().map(format::apply).collect(Collectors.joining(", "))));
+
+        return convert(rs, conf().metadata(getClass()));
     }
 
     /**
@@ -73,22 +93,7 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
 
         ResultSet rs = conf().session().execute(bindKeys(statement, conf().metadata(getClass()), key, compound));
 
-        if (rs.isExhausted()) {
-            return Collections.emptyList();
-        }
-
-        List result = new ArrayList<>();
-        for (Row row : rs.all()) {
-            final Object instance = instantiate(conf().metadata(getClass()).getEntityClass());
-            conf().fields(getClass()).stream().forEachOrdered(f -> {
-                ByteBuffer value = row.getBytesUnsafe(f.getName());
-                if (value != null) {
-                    setField(f.getField(), instance, f.getFieldType().deserialize(value));
-                }
-            });
-            result.add(instance);
-        }
-        return result;
+        return convert(rs, conf().metadata(getClass()));
     }
 
     /**
@@ -109,22 +114,8 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
         });
 
         ResultSet set = conf().session().execute(stm.bind(limit));
-        if (set.isExhausted()) {
-            return Collections.emptyList();
-        }
 
-        List result = new ArrayList<>();
-        for (Row row : set.all()) {
-            final Object instance = instantiate(conf().metadata(getClass()).getEntityClass());
-            conf().fields(getClass()).stream().forEachOrdered(f -> {
-                ByteBuffer value = row.getBytesUnsafe(f.getName());
-                if (value != null) {
-                    setField(f.getField(), instance, f.getFieldType().deserialize(value));
-                }
-            });
-            result.add(instance);
-        }
-        return result;
+        return convert(set, conf().metadata(getClass()));
     }
 
     /**

@@ -2,6 +2,8 @@ package ru.tflow.mapping.utils;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,9 +15,11 @@ import ru.tflow.mapping.exceptions.CorruptedMappingException;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static ru.tflow.mapping.utils.ReflectionUtils.instantiate;
+import static ru.tflow.mapping.utils.ReflectionUtils.setField;
 
 /**
  * Static helper methods.
@@ -25,6 +29,35 @@ import java.util.stream.Collectors;
 public class MappingUtils {
 
     private static Logger log = LoggerFactory.getLogger(MappingUtils.class);
+
+    /**
+     * Convert result set to list of entity objects
+     *
+     * @param rs Result set to convert
+     * @param md Entity metadata
+     * @param <E> Entity type
+     * @return List of entity objects or empty list if result set is empty or exhausted
+     */
+    @SuppressWarnings("unchecked")
+    public static <E> List<E> convert(ResultSet rs, EntityMetadata md) {
+        if (rs.isExhausted()) {
+            return Collections.emptyList();
+        }
+
+        List result = new ArrayList<>();
+        for (Row row : rs.all()) {
+            final Object instance = instantiate(md.getEntityClass());
+            md.getFields().stream().forEachOrdered(f -> {
+                ByteBuffer value = row.getBytesUnsafe(f.getName());
+                if (value != null) {
+                    setField(f.getField(), instance, f.getFieldType().deserialize(value));
+                }
+            });
+            result.add(instance);
+        }
+        return result;
+
+    }
 
     /**
      * Create query parameter array from primary and compound keys

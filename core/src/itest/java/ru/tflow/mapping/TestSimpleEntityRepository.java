@@ -20,7 +20,7 @@ import static ru.tflow.mapping.entity.SimpleEntity.AdvancedSimpleEntity;
  */
 public class TestSimpleEntityRepository {
 
-    private AdvancedSimpleEntity entity;
+    private AdvancedSimpleEntity entity, entity2;
 
     private AdvancedSimpleEntityRepository repository;
 
@@ -38,6 +38,17 @@ public class TestSimpleEntityRepository {
         entity.setUrl(new URL("http://localhost:8888/"));
         GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
         entity.setDate(calendar.getTime());
+
+        entity2 = new AdvancedSimpleEntity();
+        entity2.setKey(UUID.randomUUID());
+        entity2.setName("some_name2");
+        entity2.setData(ByteBuffer.wrap(new byte[]{0x01, 0x02, 0x03, 0x04}));
+        entity2.settString("temp2");
+        entity2.setDt(ZonedDateTime.now());
+        entity2.setType(SimpleEntity.Type.ADVANCED);
+        entity2.setUrl(new URL("http://localhost:9999/"));
+        GregorianCalendar calendar2 = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+        entity2.setDate(calendar2.getTime());
     }
 
     @Test
@@ -49,11 +60,16 @@ public class TestSimpleEntityRepository {
 
     protected void testSave() {
         repository.save(entity);
+        repository.save(entity2);
     }
 
     protected void testRetrieveOne() {
         Optional<AdvancedSimpleEntity> _entity = repository.findOne(entity.getKey());
         assertTrue(entity.equals(_entity.get()));
+
+        List<AdvancedSimpleEntity> several = repository.findSeveral(entity.getKey(), entity2.getKey());
+        assertTrue(several.contains(entity));
+        assertTrue(several.contains(entity2));
     }
 
     protected void testRetrieveAll() {
