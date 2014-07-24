@@ -49,6 +49,15 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
      * @return List of found objects or empty list if none found.
      */
     public default List<E> findSeveral(K... keys) {
+        return findSeveral(Arrays.asList(keys));
+    }
+
+    /**
+     * Find several objects with keys provided. Using "where K in (...)" query
+     *
+     * @return List of found objects or empty list if none found.
+     */
+    public default List<E> findSeveral(Collection<K> keys) {
         String queryTemplate = "select * from %s.%s where %s in (%s)";
 
         Function<Object, String> format = conf().metadata(getClass()).getPrimaryKey().getFieldType().getOriginalType().isAssignableFrom(String.class)
@@ -58,7 +67,7 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
             conf().keyspace(),
             conf().metadata(getClass()).getTable(),
             conf().metadata(getClass()).getPrimaryKey().getName(),
-            Arrays.asList(keys).stream().map(format::apply).collect(Collectors.joining(", "))));
+            keys.stream().map(format::apply).collect(Collectors.joining(", "))));
 
         return convert(rs, conf().metadata(getClass()));
     }
@@ -119,10 +128,9 @@ public interface CassandraRepository<E, K> extends MapperConfigurationProvider {
     }
 
     /**
-     * Save entity to database
+     * Save entity to database. Existence check is not made during object save.
      *
      * @param entity Entity to save
-     * @throws DuplicateKeyException if there is already entity with such key in database
      */
     public default void save(E entity) throws DuplicateKeyException {
 

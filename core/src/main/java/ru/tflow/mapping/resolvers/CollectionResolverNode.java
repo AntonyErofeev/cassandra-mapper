@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 /**
  * Node capable of resolving collection types
- *
+ * <p/>
  * Created by nagakhl on 5/27/2014.
  */
 public class CollectionResolverNode extends GenericResolver implements ChainNode {
@@ -47,24 +47,24 @@ public class CollectionResolverNode extends GenericResolver implements ChainNode
             throw new CorruptedMappingException("Cannot find mapping for List type argument. Field: " + f.getName(), f.getDeclaringClass());
 
         return new ExtendedDataType(f.getType(), DataType.list(genericType.getMappedType()),
-                lst -> {
-                    if (genericType.isExtended()) {
-                        List baseList = new ArrayList(((List) lst).size());
-                        ((List) lst).stream().forEach(obj -> baseList.add(genericType.toMapped(obj)));
-                        return DataType.list(genericType.getMappedType()).serialize(baseList);
-                    }
-                    return DataType.list(genericType.getMappedType()).serialize(lst);
-                },
-                bb -> {
-                    List baseList = (List) DataType.list(genericType.getMappedType()).deserialize(bb);
-                    if (genericType.isExtended()) {
-                        List extended = new ArrayList(baseList.size());
-                        baseList.stream().forEach(el -> extended.add(genericType.toOriginal(el)));
-                        return extended;
-                    }
-                    return baseList;
-
+            lst -> {
+                if (genericType.isExtended()) {
+                    List baseList = new ArrayList(((List) lst).size());
+                    ((List) lst).stream().forEach(obj -> baseList.add(genericType.toMapped(obj)));
+                    return DataType.list(genericType.getMappedType()).serialize(baseList);
                 }
+                return DataType.list(genericType.getMappedType()).serialize(lst);
+            },
+            bb -> {
+                List baseList = (List) DataType.list(genericType.getMappedType()).deserialize(bb);
+                if (genericType.isExtended()) {
+                    List extended = new ArrayList(baseList.size());
+                    baseList.stream().forEach(el -> extended.add(genericType.toOriginal(el)));
+                    return extended;
+                }
+                return baseList;
+
+            }
         );
     }
 
@@ -76,23 +76,23 @@ public class CollectionResolverNode extends GenericResolver implements ChainNode
             throw new CorruptedMappingException("Cannot find mapping for Set type argument. Field: " + f.getName(), f.getDeclaringClass());
 
         return new ExtendedDataType(f.getType(), DataType.set(genericType.getMappedType()),
-                set -> {
-                    if (genericType.isExtended()) {
-                        Set baseSet = new HashSet();
-                        ((Set) set).stream().forEach(obj -> baseSet.add(genericType.toMapped(obj)));
-                        return DataType.set(genericType.getMappedType()).serialize(baseSet);
-                    }
-                    return DataType.set(genericType.getMappedType()).serialize(set);
-                },
-                buf -> {
-                    Set baseSet = (Set) DataType.set(genericType.getMappedType()).deserialize(buf);
-                    if (genericType.isExtended()) {
-                        Set extended = new HashSet();
-                        baseSet.stream().forEach(el -> extended.add(genericType.toOriginal(el)));
-                        return extended;
-                    }
-                    return baseSet;
+            set -> {
+                if (genericType.isExtended()) {
+                    Set baseSet = new HashSet();
+                    ((Set) set).stream().forEach(obj -> baseSet.add(genericType.toMapped(obj)));
+                    return DataType.set(genericType.getMappedType()).serialize(baseSet);
                 }
+                return DataType.set(genericType.getMappedType()).serialize(set);
+            },
+            buf -> {
+                Set baseSet = (Set) DataType.set(genericType.getMappedType()).deserialize(buf);
+                if (genericType.isExtended()) {
+                    Set extended = new HashSet();
+                    baseSet.stream().forEach(el -> extended.add(genericType.toOriginal(el)));
+                    return extended;
+                }
+                return baseSet;
+            }
         );
 
     }
@@ -108,27 +108,27 @@ public class CollectionResolverNode extends GenericResolver implements ChainNode
 
         DataType mappedType = DataType.map(fKey.getMappedType(), fVal.getMappedType());
         return new ExtendedDataType(cls, mappedType,
-                map -> {
-                    Map baseMap;
-                    if (fKey.isExtended() || fVal.isExtended()) {
-                        baseMap = new HashMap();
-                        ((Map<Object, Object>) map).entrySet().stream().forEach(el
-                                -> baseMap.put(fKey.toMapped(el.getKey()), fVal.toMapped(el.getValue())));
-                    } else {
-                        baseMap = (Map) map;
-                    }
-                    return mappedType.serialize(baseMap);
-                },
-                bb -> {
-                    Map<Object, Object> baseMap = (Map) DataType.map(mappedType.getTypeArguments().get(0), mappedType.getTypeArguments().get(1)).deserialize(bb);
-                    if (fKey.isExtended() || fVal.isExtended()) {
-                        Map extendedMap = new HashMap();
-                        baseMap.entrySet().stream().forEach(el
-                                -> extendedMap.put(fKey.toOriginal(el.getKey()), fVal.toOriginal(el.getValue())));
-                        return extendedMap;
-                    }
-                    return baseMap;
+            map -> {
+                Map baseMap;
+                if (fKey.isExtended() || fVal.isExtended()) {
+                    baseMap = new HashMap();
+                    ((Map<Object, Object>) map).entrySet().stream().forEach(el
+                        -> baseMap.put(fKey.toMapped(el.getKey()), fVal.toMapped(el.getValue())));
+                } else {
+                    baseMap = (Map) map;
                 }
+                return mappedType.serialize(baseMap);
+            },
+            bb -> {
+                Map<Object, Object> baseMap = (Map) DataType.map(mappedType.getTypeArguments().get(0), mappedType.getTypeArguments().get(1)).deserialize(bb);
+                if (fKey.isExtended() || fVal.isExtended()) {
+                    Map extendedMap = new HashMap();
+                    baseMap.entrySet().stream().forEach(el
+                        -> extendedMap.put(fKey.toOriginal(el.getKey()), fVal.toOriginal(el.getValue())));
+                    return extendedMap;
+                }
+                return baseMap;
+            }
         );
     }
 }
